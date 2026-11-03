@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SDG-15 Camera Monitor</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: system-ui, "Segoe UI", sans-serif;
+      background: #101814;
+      color: #edf5ef;
+    }
+    body { margin: 0; }
+    main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    h1 { margin: 0 0 6px; font-size: clamp(1.5rem, 4vw, 2.2rem); }
+    .subtitle, .muted { color: #a9b9ae; }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
+      gap: 18px;
+      margin-top: 22px;
+    }
+    .panel {
+      border: 1px solid #304238;
+      border-radius: 12px;
+      background: #19241e;
+      padding: 18px;
+      min-width: 0;
+    }
+    .preview {
+      display: grid;
+      place-items: center;
+      min-height: 280px;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      border-radius: 8px;
+      background: #0b100d;
+    }
+    .preview img { width: 100%; height: 100%; object-fit: contain; }
+    .empty { padding: 24px; text-align: center; color: #a9b9ae; }
+    .status { margin: 12px 0 0; color: #a9b9ae; }
+    .species { margin: 4px 0; font-size: 1.7rem; overflow-wrap: anywhere; }
+    .confidence { font-size: 1.1rem; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+    .chip {
+      border-radius: 999px;
+      background: #293a30;
+      padding: 5px 10px;
+      color: #cfe3d4;
+      font-size: .9rem;
+    }
+    .chip.alert { background: #612b25; color: #ffd9d2; }
+    dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; }
+    dt { color: #a9b9ae; }
+    dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+    h2 { margin: 20px 0 8px; font-size: 1.1rem; }
+    .score { display: grid; grid-template-columns: 112px 1fr 48px; gap: 8px; align-items: center; margin: 8px 0; }
+    .score-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar { height: 8px; border-radius: 8px; background: #304238; overflow: hidden; }
+    .bar span { display: block; height: 100%; background: #78bd88; }
+    .score-value { text-align: right; color: #c8d7cc; font-variant-numeric: tabular-nums; }
+    @media (max-width: 760px) {
+      main { padding: 16px; }
+      .layout { grid-template-columns: 1fr; }
+      .preview { min-height: 200px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>SDG-15 Camera Monitor</h1>
+    <div class="subtitle">Latest PIR-triggered camera image and on-device classification</div>
+    <div class="layout">
+      <section class="panel">
+        <div class="preview" id="preview">
+          <div class="empty">Waiting for the first uploaded camera capture…</div>
+        </div>
+        <p class="status" id="status" role="status">Connecting to receiver…</p>
+      </section>
+      <section class="panel">
+        <div class="muted">Latest classification</div>
+        <h2 class="species" id="species">—</h2>
+        <div class="confidence" id="confidence">No capture yet</div>
+        <div class="chips" id="flags"></div>
+        <dl>
+          <dt>Captured</dt><dd id="captured">—</dd>
+          <dt>Event ID</dt><dd id="event">—</dd>
+          <dt>Model</dt><dd id="model">—</dd>
+          <dt>Inference</dt><dd id="inference">—</dd>
+          <dt>Image size</dt><dd id="resolution">—</dd>
+        </dl>
+        <h2>Class scores</h2>
+        <div id="scores" class="muted">Scores appear after a capture.</div>
+      </section>
+    </div>
+  </main>
+  <script>
+    const byId = (id) => document.getElementById(id);
+    let shownEventId = "";
+
+    function setText(id, value) {
+      byId(id).textContent = value;
+    }
+
+    function renderScores(scores) {
+      const container = byId("scores");
+      container.replaceChildren();
+      for (const [name, score] of Object.entries(scores).sort((a, b) => b[1] - a[1])) {
+        const row = document.createElement("div");
+        row.className = "score";
+        const label = document.createElement("span");
+        label.className = "score-name";
+        label.textContent = name;
+        const bar = document.createElement("div");
+        bar.className = "bar";
+        const fill = document.createElement("span");
+        fill.style.width = `${Math.max(0, Math.min(1, score)) * 100}%`;
+        bar.append(fill);
+        const value = document.createElement("span");
+        value.className = "score-value";
+        value.textContent = `${(score * 100).toFixed(1)}%`;
+        row.append(label, bar, value);
+        container.append(row);
+      }
+    }
+
+    function render(capture) {
+      if (!capture) {
+        setText("status", "No uploaded captures yet. Trigger motion to capture an image.");
+        return;
+      }
+
+      if (capture.event_id !== shownEventId) {
+        shownEventId = capture.event_id;
+        const image = document.createElement("img");
+        image.alt = `Camera capture ${capture.event_id}`;
+        image.src = `${capture.image_url}?event=${encodeURIComponent(capture.event_id)}`;
+        image.onerror = () => setText("status", "Latest image could not be loaded from the receiver.");
+        image.onload = () => setText("status", `Showing latest capture ${capture.event_id}`);
+        byId("preview").replaceChildren(image);
+      }
+
+      setText("species", capture.species);
+      setText("confidence", `${(capture.confidence * 100).toFixed(1)}% confidence`);
+      setText("captured", capture.captured_at || "Timestamp unavailable");
+      setText("event", capture.event_id);
+      setText("model", capture.model_version);
+      setText("inference", `${capture.inference_ms} ms`);
+      setText("resolution", `${capture.frame_width} × ${capture.frame_height}`);
+      const flags = [];
+      if (capture.is_alert) flags.push("Alert");
+      if (capture.is_target_species) flags.push("Target species");
+      if (capture.is_human) flags.push("Human");
+      const flagContainer = byId("flags");
+      flagContainer.replaceChildren();
+      if (flags.length === 0) flags.push("No alert");
+      for (const flag of flags) {
+        const chip = document.createElement("span");
+        chip.className = flag === "Alert" ? "chip alert" : "chip";
+        chip.textContent = flag;
+        flagContainer.append(chip);
+      }
+      renderScores(capture.scores);
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch("/api/latest", { cache: "no-store" });
+        if (!response.ok) throw new Error(`Receiver returned HTTP ${response.status}`);
+        const body = await response.json();
+        render(body.capture);
+      } catch (error) {
+        setText("status", `Receiver unavailable: ${error.message}`);
+      }
+    }
+
+    refresh();
+    window.setInterval(refresh, 2000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+#pragma once
+
+#include "driver/gpio.h"
+
+#define CAMERA_PIN_PWDN -1
+#define CAMERA_PIN_RESET -1
+#define CAMERA_PIN_XCLK 15
+#define CAMERA_PIN_SIOD 4
+#define CAMERA_PIN_SIOC 5
+#define CAMERA_PIN_D0 11
+#define CAMERA_PIN_D1 9
+#define CAMERA_PIN_D2 8
+#define CAMERA_PIN_D3 10
+#define CAMERA_PIN_D4 12
+#define CAMERA_PIN_D5 18
+#define CAMERA_PIN_D6 17
+#define CAMERA_PIN_D7 16
+#define CAMERA_PIN_VSYNC 6
+#define CAMERA_PIN_HREF 7
+#define CAMERA_PIN_PCLK 13
+
+#define PIR_GPIO GPIO_NUM_2
+#define LED_LOW_THREAT_GPIO GPIO_NUM_1
+#define LED_MEDIUM_THREAT_GPIO GPIO_NUM_14
+#define LED_HIGH_THREAT_GPIO GPIO_NUM_21
+#define BUZZER_GPIO GPIO_NUM_3
+#define PIR_WARMUP_MS 30000U
