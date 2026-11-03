@@ -1,0 +1,14 @@
+include/secrets.h
+.pio/
+sdkconfig
+sdkconfig.old
+managed_components/
+models/*.onnx*
+capImages/*.jpg
+capImages/*.tmp
+detections.csv
+__pycache__/
+*.py[cod]
+capImages
+tests
+tools

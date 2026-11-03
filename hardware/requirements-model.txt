@@ -1,0 +1,10 @@
+# Use Python 3.12; TensorFlow/onnx2tf wheels may not be available for newer Python.
+onnx>=1.17,<2
+onnx-graphsurgeon>=0.5,<1
+onnx2tf>=1.28,<2
+onnxsim>=0.4
+psutil>=5
+sng4onnx>=1
+ai-edge-litert>=2.1
+tf-keras>=2.16,<2.21
+tensorflow>=2.16,<2.21
